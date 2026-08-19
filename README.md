@@ -1,73 +1,201 @@
-# Welcome to your Lovable project
+<div align="center">
 
-## Project info
+# Pixel Lift
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+**AI image enhancement in the browser — upload a photo, get back a sharper, cleaner version.**
 
-## How can I edit this code?
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Supabase](https://img.shields.io/badge/Supabase-Edge_Functions-3ECF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
-There are several ways of editing your application.
+[**How it works**](#how-it-works) · [**Setup**](#setup) · [**Limitations**](#limitations) · [**Roadmap**](#roadmap)
 
-**Use Lovable**
+</div>
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## What it does
 
-**Use your preferred IDE**
+Drop in a photo and Pixel Lift sends it through a generative image model that sharpens detail,
+reduces noise, and improves colour and contrast while keeping the original composition intact.
+The result comes back beside the original in a **drag-to-compare slider**, so you can see exactly
+what changed before downloading.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Built as a web app first, then packaged for Android and iOS through Capacitor from the same codebase.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+> **Screenshot goes here** — replace this line with `![Pixel Lift](docs/screenshot.png)`
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## Features
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+| Feature | Details |
+|---|---|
+| **Drag & drop upload** | Full-area drop zone with live drag state, or click to browse |
+| **Before / after slider** | Draggable divider to compare the original and enhanced image directly |
+| **Live progress** | Incremental progress feedback while the model runs |
+| **One-click download** | Saves the enhanced image as PNG |
+| **Client-side validation** | Rejects non-images and anything over 10 MB before upload |
+| **Error recovery** | Failed requests reset cleanly to the idle state with a readable message |
+| **Cross-platform** | Same codebase runs on web, Android, and iOS via Capacitor |
+| **Responsive UI** | Built on shadcn/ui and Tailwind, works from phone to desktop |
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+## How it works
+
+```
+┌─────────────────┐     base64      ┌──────────────────────┐
+│   React client  │ ──────────────▶ │  Supabase Edge Fn    │
+│                 │                 │  (Deno runtime)      │
+│  • UploadZone   │                 │  upscale-image       │
+│  • Progress     │                 └──────────┬───────────┘
+│  • Comparison   │                            │
+└─────────────────┘                            ▼
+         ▲                            ┌──────────────────────┐
+         │      enhanced image        │  Generative image    │
+         └────────────────────────────│  model (Gemini)      │
+                                      └──────────────────────┘
+```
+
+1. The client validates the file (type and size), reads it as a base64 data URL, and renders it immediately as the "before" image.
+2. It invokes the `upscale-image` Supabase Edge Function, running on Deno.
+3. The function forwards the image to a generative image model with an enhancement instruction, and returns the result.
+4. The client swaps in the enhanced image and enables download.
+
+Progress is reported incrementally during the request. The underlying API does not stream
+completion percentages, so the bar advances on a timer and snaps to 100% on response —
+it communicates *activity*, not measured progress.
+
+---
+
+## Tech stack
+
+**Frontend** — React 18 · TypeScript · Vite · Tailwind CSS · shadcn/ui · TanStack Query · Sonner
+
+**Backend** — Supabase Edge Functions (Deno) · generative image model via HTTP gateway
+
+**Mobile** — Capacitor (Android + iOS targets)
+
+---
+
+## Setup
+
+### Requirements
+- Node.js 18+
+- A [Supabase](https://supabase.com) project
+- An API key for the image gateway used by the edge function
+
+### 1 — Install
+
+```bash
+git clone https://github.com/ABDULLAH-AMJID/pixel-lift.git
+cd pixel-lift
+npm install
+```
+
+### 2 — Configure
+
+```bash
+cp .env.example .env
+```
+
+Fill in your Supabase credentials:
+
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+VITE_SUPABASE_PROJECT_ID=your-project-id
+```
+
+### 3 — Deploy the edge function
+
+```bash
+supabase functions deploy upscale-image
+supabase secrets set LOVABLE_API_KEY=your-key
+```
+
+### 4 — Run
+
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Open <http://localhost:5173>
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Mobile build
 
-**Use GitHub Codespaces**
+```bash
+npm run build
+npx cap sync
+npx cap open android    # or: npx cap open ios
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## Limitations
 
-This project is built with:
+Being direct about what this does and doesn't do:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **This is generative enhancement, not true upscaling.** The image is regenerated by a diffusion-based
+  model, not resampled by a super-resolution algorithm. Fine detail may be *invented* rather than
+  recovered. It is unsuitable for forensic, medical, or archival use where fidelity to the original
+  matters.
+- **Output resolution is not guaranteed.** The model returns whatever size it produces. Earlier
+  versions of this UI advertised a fixed "8K" output, which was not accurate and has been removed.
+- **The edge function depends on a proprietary API gateway.** Running your own instance currently
+  requires a key for that gateway. Swapping it for a direct provider API is the top item on the roadmap.
+- **10 MB upload cap**, enforced client-side only. A server-side check should be added before this is
+  exposed publicly.
+- **No authentication or rate limiting.** The edge function accepts requests from any origin
+  (`Access-Control-Allow-Origin: *`). Fine for local development, not safe for a public deployment.
+- **Images are sent to a third-party model provider.** Do not upload anything private or sensitive.
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Roadmap
 
-## Can I connect a custom domain to my Lovable project?
+- [ ] Replace the proprietary gateway with a direct provider API so anyone can self-host
+- [ ] Add server-side file validation and per-IP rate limiting
+- [ ] Restrict CORS to known origins
+- [ ] Add a real super-resolution path (Real-ESRGAN or similar) as an alternative to generative enhancement
+- [ ] Batch processing for multiple images
+- [ ] Show measured output dimensions instead of a marketing claim
+- [ ] Publish signed Android builds
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Project structure
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+```
+src/
+├── components/
+│   ├── UploadZone.tsx        # drag & drop, validation
+│   ├── ImageComparison.tsx   # before/after slider
+│   ├── ProcessingState.tsx   # progress UI
+│   └── ui/                   # shadcn/ui primitives
+├── integrations/supabase/    # generated client + types
+├── pages/Index.tsx           # main flow and state machine
+└── main.tsx
+
+supabase/
+└── functions/upscale-image/  # Deno edge function
+```
+
+---
+
+## Notes
+
+The initial UI was scaffolded with [Lovable](https://lovable.dev), then extended and reworked by hand —
+including the comparison slider behaviour, upload validation, error handling, and the edge function
+integration.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+Built by [M. Abdullah Amjid](https://github.com/ABDULLAH-AMJID).
